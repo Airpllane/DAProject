@@ -39,5 +39,9 @@ fsim = data[data['id'].isin(fsim_tags['id'])]
 
 #%%
 
-ex_tokd = nltk.word_tokenize(psim.iloc[0]['text'])
-ex_tagd = nltk.pos_tag(ex_tokd)
+psim_tokd = psim['text'].map(nltk.word_tokenize)
+psim_tagd = psim_tokd.map(nltk.pos_tag)
+psim_tags = [[tup[1] for tup in sentence] for sentence in psim_tagd]
+
+#%%
+
