@@ -2,8 +2,27 @@ import numpy as np
 import pandas as pd
 import nltk
 
+from keras.preprocessing.text import Tokenizer
+
 #nltk.download('punkt')
 #nltk.download('averaged_perceptron_tagger')
+
+#%%
+
+def sentences_to_tags(sentences, stype):
+    stc_tokd = sentences['text'].map(nltk.word_tokenize)
+    stc_tagd = stc_tokd.map(nltk.pos_tag)
+    stc_as_tags = [[tup[1] for tup in sentence] for sentence in stc_tagd]
+    stc = pd.DataFrame()
+    stc['as_tags'] = stc_as_tags
+    stc['type'] = stype
+    return stc
+
+def get_convert_and_tag(data, tags, stype):
+    stc_tags = tags[tags['tag'] == stype]
+    stc = data[data['id'].isin(stc_tags['id'])]
+    stc = sentences_to_tags(stc, stype)
+    return stc
 
 #%%
 
@@ -21,27 +40,15 @@ tags = pd.read_csv('tags.csv', sep = '\t', names = ['id', 'tag'])
 
 #%%
 
-psim_tags = tags[tags['tag'] == 'present simple']
-pcon_tags = tags[tags['tag'] == 'present continuous']
-pssim_tags = tags[tags['tag'] == 'past simple']
-ppfc_tags = tags[tags['tag'] == 'present perfect']
-ppfccon_tags = tags[tags['tag'] == 'present perfect continuous']
-fsim_tags = tags[tags['tag'] == 'future simple']
+stypes = ['present simple', 'present continuous', 'past simple', 'present perfect', 'present perfect continuous', 'future simple']
+
+tags_and_type = pd.concat([get_convert_and_tag(data, tags, i) for i in stypes])
+
+tags_and_type.to_csv('tnt.csv', index = False)
 
 #%%
 
-psim = data[data['id'].isin(psim_tags['id'])]
-pcon = data[data['id'].isin(pcon_tags['id'])]
-pssim = data[data['id'].isin(pssim_tags['id'])]
-ppfc = data[data['id'].isin(ppfc_tags['id'])]
-ppfccon = data[data['id'].isin(ppfccon_tags['id'])]
-fsim = data[data['id'].isin(fsim_tags['id'])]
-
-#%%
-
-psim_tokd = psim['text'].map(nltk.word_tokenize)
-psim_tagd = psim_tokd.map(nltk.pos_tag)
-psim_tags = [[tup[1] for tup in sentence] for sentence in psim_tagd]
-
-#%%
-
+tokenizer = Tokenizer(num_words = 50, filters = '')
+tokenizer.fit_on_texts(tags_and_type['as_tags'])
+Xfs = tokenizer.texts_to_matrix(tags_and_type['as_tags'], mode = 'count')
+yfs = tags_and_type['type']
