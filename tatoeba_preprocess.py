@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import nltk
+import json
 
 from keras.preprocessing.text import Tokenizer
 
@@ -44,7 +45,23 @@ stypes = ['present simple', 'present continuous', 'past simple', 'present perfec
 
 tags_and_type = pd.concat([get_convert_and_tag(data, tags, i) for i in stypes])
 
+#%%
+
+mask = tags_and_type.type == 'present perfect'
+column_name = 'type'
+tags_and_type.loc[mask, column_name] = 'other'
+mask = tags_and_type.type == 'present perfect continuous'
+tags_and_type.loc[mask, column_name] = 'other'
+
+#%%
+
+tags_and_type['as_tags'] = tags_and_type['as_tags'].map(' '.join)
+
+#%%
+
 tags_and_type.to_csv('tnt.csv', index = False)
+
+tags_and_type = pd.read_csv('tnt.csv')
 
 #%%
 
@@ -52,3 +69,10 @@ tokenizer = Tokenizer(num_words = 50, filters = '')
 tokenizer.fit_on_texts(tags_and_type['as_tags'])
 Xfs = tokenizer.texts_to_matrix(tags_and_type['as_tags'], mode = 'count')
 yfs = tags_and_type['type']
+
+#%%
+
+tokenizer_json = tokenizer.to_json()
+with open('tokenizer.json', 'w', encoding='utf-8') as f:
+    f.write(json.dumps(tokenizer_json, ensure_ascii=False))
+    
