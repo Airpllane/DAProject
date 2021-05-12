@@ -1,6 +1,5 @@
 # importing packages
 import pandas as pd
-import re
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -8,31 +7,18 @@ import json
 
 # sklearn packages
 from sklearn import metrics
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.preprocessing import FunctionTransformer, StandardScaler
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.dummy import DummyClassifier
-from sklearn.metrics import multilabel_confusion_matrix
-from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.pipeline import Pipeline
+
 import xgboost as xgb
 
 # nltk packages
 import nltk
-from nltk import word_tokenize
-from nltk.stem import WordNetLemmatizer 
-from nltk.corpus import stopwords
-nltk.download('punkt')
-from string import punctuation
-nltk.download('averaged_perceptron_tagger')
-nltk.download('wordnet')
+#nltk.download('punkt')
+#nltk.download('averaged_perceptron_tagger')
+#nltk.download('wordnet')
 
-from keras.preprocessing.text import Tokenizer, tokenizer_from_json
+from keras.preprocessing.text import tokenizer_from_json
 
 def sentences_to_tags(sentences, stype):
     stc_tokd = sentences['text'].map(nltk.word_tokenize)
@@ -50,7 +36,6 @@ def get_convert_and_tag(data, tags, stype):
     return stc
 
 tags_and_type = pd.read_csv('tnt.csv')
-
 
 with open('tokenizer.json') as f:
     data = json.load(f)
@@ -73,25 +58,27 @@ for i in range(len(yfs_with_numbers)):
     
 train_X, test_X, train_y, test_y = train_test_split(Xfs, yfs_with_numbers, test_size=0.3, stratify=yfs_with_numbers, random_state=0)
 
-clf = xgb.XGBClassifier(random_state=42, seed=2, colsample_bytree=0.6, subsample=0.7)
+clf = xgb.XGBClassifier(n_estimators = 300, random_state = 42, seed = 2, colsample_bytree = 0.6, subsample = 0.7)
 
-from sklearn.pipeline import Pipeline, FeatureUnion
+'''
 pipe = Pipeline([('clf',clf)])
 
 param_grid = {
      'clf__n_estimators': [300],
-     
 }
 
-from sklearn.model_selection import GridSearchCV
 grid_search = GridSearchCV(estimator = pipe, param_grid = param_grid, 
                           cv = 3, n_jobs = 1, verbose = 0, return_train_score=True)
 
 grid_search.fit(train_X, train_y.astype(int))
 
-clf_test = grid_search.best_estimator_
 
-preds = clf_test.predict(test_X)
+clf_test = grid_search.best_estimator_
+'''
+
+clf.fit(train_X, train_y.astype(int))
+
+preds = clf.predict(test_X)
 
 def print_stats(preds, target, labels, sep='-', sep_len=40, fig_size=(10,8)):
     print('Accuracy = %.3f' % metrics.accuracy_score(target, preds))
@@ -111,16 +98,18 @@ def print_stats(preds, target, labels, sep='-', sep_len=40, fig_size=(10,8)):
     
 print('Accuracy = %.3f' % metrics.accuracy_score(test_y.astype(int), preds.astype(int)))
 
-print_stats(test_y.astype(int), preds.astype(int), clf_test.classes_)
+print_stats(test_y.astype(int), preds.astype(int), clf.classes_)
+
+clf.save_model('XGB.json')
 
 #%%
 
-input_variable = "He will have done it by this evening"
-input_variable = nltk.word_tokenize(input_variable)
-input_variable = [nltk.pos_tag(input_variable)]
+input_variable = pd.Series(["I walk my dog", "I am going there", "Tom was perplexed", "I will go"])
+input_variable = input_variable.map(nltk.word_tokenize)
+input_variable = input_variable.map(nltk.pos_tag)
 
 input_variable = [[tup[1] for tup in sentence] for sentence in input_variable]
 
-input_variable = tokenizer.texts_to_matrix(input_variable, mode = 'count')
+#input_variable = tokenizer.texts_to_matrix(input_variable, mode = 'count')
 
-print(clf_test.predict(input_variable))
+#print(clf.predict(input_variable))
